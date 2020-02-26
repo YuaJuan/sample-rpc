@@ -1,6 +1,5 @@
 package yu.netty.rpc.client;
 
-public class ServiceStub {
-	void setTransport(transport);
-
+public interface ServiceStub {
+	void setTransport(Transport transport);
 }
