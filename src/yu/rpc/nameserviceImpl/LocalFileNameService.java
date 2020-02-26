@@ -13,10 +13,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import com.github.liyue2008.rpc.nameservice.Metadata;
-import com.github.liyue2008.rpc.serialize.SerializeSupport;
-
 import yu.rpc.api.NameService;
+import yu.serialize.SerializeSupport;
 
 public class LocalFileNameService implements NameService {
 	private static final Collection<String> schemes = Collections.singleton("file");
@@ -30,8 +28,8 @@ public class LocalFileNameService implements NameService {
 		try {
 			int fileLength = (int) raf.length();
 			byte[] bytes;
+			Metadata metadata = new Metadata();
 			if (fileLength > 0) {
-				Metadata metadata=new Metadata();
 				bytes = new byte[(int) raf.length()];
 				ByteBuffer buffer = ByteBuffer.wrap(bytes);
 				while (buffer.hasRemaining()) {
@@ -45,11 +43,11 @@ public class LocalFileNameService implements NameService {
 			if (!uris.contains(uri)) {
 				uris.add(uri);
 			}
-			bytes=yu.serialize.SerializeSupport.serialize(metadata);
-			 filechannel.truncate(bytes.length);
-             filechannel.position(0L);
-             filechannel.write(ByteBuffer.wrap(bytes));
-             filechannel.force(true);
+			bytes = yu.serialize.SerializeSupport.serialize(metadata);
+			filechannel.truncate(bytes.length);
+			filechannel.position(0L);
+			filechannel.write(ByteBuffer.wrap(bytes));
+			filechannel.force(true);
 
 		} finally {
 			lock.close();
@@ -61,8 +59,26 @@ public class LocalFileNameService implements NameService {
 
 	@Override
 	public URI lookupService(String serviceName) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+		Metadata metadata;
+		RandomAccessFile raf = new RandomAccessFile(file, "rw");
+		FileChannel filechannel = raf.getChannel();
+		FileLock lock = filechannel.lock();
+		try {
+			byte[] bytes = new byte[(int) raf.length()];
+			ByteBuffer buffer = ByteBuffer.wrap(bytes);
+			while (buffer.hasRemaining()) {
+				filechannel.read(buffer);
+			}
+			if (bytes.length == 0) {
+				metadata = SerializeSupport.parse(bytes);
+			} else {
+				metadata = new Metadata();
+			}
+		} finally {
+			lock.release();
+		}
+		List<URI> uris=metadata.get(serviceName);
+		if(uris==null||uris.isEmpty())return null;
 	}
 
 	@Override
