@@ -1,4 +1,4 @@
-package yu.rpc.com;
+package yu.rpc.api;
 
 import java.io.IOException;
 import java.net.URI;
